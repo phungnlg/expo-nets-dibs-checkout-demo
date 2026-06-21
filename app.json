@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Nets/DIBS Checkout Demo",
+    "slug": "expo-nets-dibs-checkout-demo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "nets3ds",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.phungnlg.exponetsdibscheckout",
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": ["bankid"]
+      }
+    },
+    "android": {
+      "package": "com.phungnlg.exponetsdibscheckout",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [{ "scheme": "nets3ds" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true }
+  }
+}
