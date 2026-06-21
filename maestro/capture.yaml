@@ -1,0 +1,42 @@
+appId: host.exp.Exponent
+name: Nets/DIBS Checkout demo - capture key screens
+---
+# Walks the Step 5 payment flow via the Checkout JS (WebView) option:
+# method + integration picker -> Nets/DIBS Checkout -> 3DS2 -> BankID intercept
+# -> result. The project must already be open in Expo Go (see FLOW.md):
+# xcrun simctl openurl booted exp://localhost:8082
+- tapOn: { text: "OK", optional: true }
+- tapOn: { text: "Present native checkout", optional: true }
+- tapOn: { text: "Done", optional: true }
+- extendedWaitUntil:
+    visible: { text: "Amount to pay" }
+    timeout: 30000
+- takeScreenshot: screenshots/01-payment-setup
+
+# Ensure the Checkout JS (WebView) option is selected for this walkthrough.
+- tapOn:
+    point: "50%,77%"
+- tapOn: "Pay now"
+- extendedWaitUntil:
+    visible: { text: "Payment method" }
+    timeout: 20000
+- takeScreenshot: screenshots/02-checkout
+
+- tapOn: "Pay with card"
+- extendedWaitUntil:
+    visible: { text: "3-D Secure verification" }
+    timeout: 15000
+- takeScreenshot: screenshots/03-3ds-challenge
+
+- tapOn: "Open BankID app"
+- extendedWaitUntil:
+    visible: { text: "BankID" }
+    timeout: 10000
+- takeScreenshot: screenshots/04-bankid-intercept
+- tapOn: { text: "OK|Continue|Dismiss", optional: true }
+
+- tapOn: { text: "I have signed in BankID", optional: true }
+- extendedWaitUntil:
+    visible: { text: "Payment approved" }
+    timeout: 15000
+- takeScreenshot: screenshots/05-result-paid

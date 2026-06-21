@@ -1,0 +1,16 @@
+appId: host.exp.Exponent
+name: Nets/DIBS Checkout demo - native SDK option screen
+---
+# Captures the Native Nets SDK (Option A) path. Project must be open in Expo Go.
+- tapOn: { text: "OK", optional: true }
+- tapOn: { text: "Done", optional: true }
+- extendedWaitUntil:
+    visible: { text: "Amount to pay" }
+    timeout: 30000
+- tapOn:
+    point: "50%,86%"
+- tapOn: "Pay now"
+- extendedWaitUntil:
+    visible: { text: "Native Nets Easy SDK" }
+    timeout: 20000
+- takeScreenshot: screenshots/06-native-sdk-option
