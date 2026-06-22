@@ -90,8 +90,21 @@ Without keys the backend runs in **sandbox** mode and the flow is fully demoable
 With `NEXI_SECRET_KEY` + `NEXI_CHECKOUT_KEY` the backend proxies the real Nexi
 test API and the WebView mounts the real Checkout JS SDK.
 
-The Native SDK path needs a dev client that bundles `modules/nets-easy`; in Expo
-Go it is simulated.
+### Native SDK path (Option A) - dev build
+
+`modules/nets-easy` is a real **Expo Modules API** local module (Swift + Kotlin),
+autolinked by Expo. It is not available in Expo Go (which is why the app detects
+its absence and simulates the path there). To run it for real, build a dev client:
+
+```sh
+npx expo run:ios        # or: npx expo run:android
+```
+
+The iOS module is verified to autolink and compile (`pod install` installs the
+`NetsEasy` pod; the Swift target builds clean). To go live, add the Nets Easy SDK
+dependency in `modules/nets-easy/ios/NetsEasy.podspec` /
+`modules/nets-easy/android/build.gradle` and replace the stand-in checkout view
+with the real SDK call - the JS contract (`presentCheckout`) stays the same.
 
 ## Production checklist
 
