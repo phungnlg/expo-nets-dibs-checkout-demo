@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["NetsEasyModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.netseasy.NetsEasyModule"]
+  }
+}
