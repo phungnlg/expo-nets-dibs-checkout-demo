@@ -8,16 +8,39 @@ cleanly into the app**.
 
 ![Demo](screenshots/demo.gif)
 
+## Key question: how does 3DS2 / BankID behave in React Native?
+
+Short answer, both integration paths:
+
+- **Native Nets SDK (Option A, [`Nets-Easy-Android-SDK`](https://github.com/Nets-eCom/Nets-Easy-Android-SDK) /
+  `Nets-Easy-iOS-SDK`)** - the SDK owns 3DS2 **and** the BankID app-switch and
+  return **internally**. The app calls one method and gets a terminal status back.
+  There is nothing for you to intercept. Lowest 3DS/BankID risk because the SDK
+  handles the same-device return itself.
+- **Checkout JS in a WebView (Option B)** - 3DS2 runs inside the WebView; on a
+  Swedish card it fires `bankid://`. The app intercepts that app-switch
+  (`Linking.openURL`) and the return URL (`onShouldStartLoadWithRequest`), then
+  reconciles the result server-side. Works, but the app-switch **out** of the
+  WebView and the return **back** are the fragile part.
+
+> **What this demo proves vs. what still needs a real device:** the demo proves
+> the full interception mechanism end to end (app-switch caught, WebView blocked,
+> return caught, status confirmed server-side) using Nexi's **test 3-D Secure
+> simulator**. It does **not** yet exercise a **real BankID** app-switch on real
+> hardware - that is the one remaining unknown and needs a **1-2 day spike on real
+> iOS + Android**. Option A removes that unknown because the SDK owns the return.
+
 ## The two options (selectable in the app)
 
 | Option | How | This repo |
 |---|---|---|
-| **A - Native Nets SDK** | RN native module wrapping `Nets-Easy-iOS-SDK` / `Nets-Easy-Android-SDK`. The SDK renders its own UI and drives 3DS/BankID; no WebView. Mirrors the current Flutter `MethodChannel se.malsom/host.base`. | `src/native/NetsEasy.ts` + `modules/nets-easy/{ios,android}` bridge source; `app/native-sdk.tsx` invokes it. |
+| **A - Native Nets SDK** | RN native module wrapping `Nets-Easy-iOS-SDK` / [`Nets-Easy-Android-SDK`](https://github.com/Nets-eCom/Nets-Easy-Android-SDK). The SDK renders its own UI and drives 3DS/BankID; no WebView. Mirrors the current Flutter `MethodChannel se.malsom/host.base`. | `src/native/NetsEasy.ts` + `modules/nets-easy/{ios,android}` bridge source; `app/native-sdk.tsx` invokes it. |
 | **B - Checkout JS SDK** | Hosted Nexi Checkout page in `react-native-webview` (same as the website). The app intercepts the BankID app-switch and the return URL. | `app/checkout.tsx` + `server/routes/checkout.ts` (mounts the **real Checkout JS SDK** when keyed, sandbox otherwise). |
 
-The client leans toward Option B ("we wonder if we even need the SDK ... switch
-to Checkout JS"). This demo shows B working on a bare simulator and ships the A
-bridge so both can be estimated against running code.
+Both options are built so each can be estimated against running code. Option A
+uses the same Nets/DIBS SDK you named ([`Nets-Easy-Android-SDK`](https://github.com/Nets-eCom/Nets-Easy-Android-SDK));
+Option B is the WebView Checkout JS route. The demo runs B on a bare simulator
+and ships the A bridge alongside it.
 
 ## What it shows
 
@@ -34,7 +57,7 @@ bridge so both can be estimated against running code.
   in Expo Go (module unlinked) it explains the contract and simulates the result.
 - **Observable trace** - the result screen prints every interception step.
 
-## Screens
+## Screenshots
 
 A **real payment completed end to end** in the app WebView against the Nexi test
 API: enter a test card, clear the real `3D Secure` step, return into the app, and
@@ -49,11 +72,11 @@ have the backend confirm the charge server-side (note the `(TEST)` amount and th
 |---|---|---|
 | ![3DS](screenshots/04-3ds-sim.png) | ![Result](screenshots/05-result-paid.png) | ![Native](screenshots/06-native-sdk-option.png) |
 
-The 3DS step here is Nexi's **test 3-D Secure simulator**; in production a real
-Swedish card app-switches to **BankID**. The app intercepts that `bankid://`
-app-switch in code either way (`app/checkout.tsx`). The result screen reads
-`paid` from a **server-side check against Nexi**, not from the return URL - the
-trace deliberately shows the raw redirect carried no status.
+The 3DS step here is Nexi's **test 3-D Secure simulator** (real BankID caveat
+above). Either way the app intercepts the `bankid://` app-switch in code
+(`app/checkout.tsx`), and the result screen reads `paid` from a **server-side
+check against Nexi**, not from the return URL - the trace shows the raw redirect
+carried no status.
 
 ## The interception (Checkout JS path)
 
