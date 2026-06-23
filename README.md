@@ -23,9 +23,9 @@ bridge so both can be estimated against running code.
 
 - **Step 5 payment screen** - amount, method picker (Card / Apple Pay / Google
   Pay), and the **integration-option toggle** (Checkout JS / Native SDK).
-- **Checkout JS path** - WebView hosts the Nets/DIBS Checkout; the **real Nexi
-  Checkout JS SDK** loads when `NEXI_CHECKOUT_KEY` is set, a faithful sandbox
-  otherwise.
+- **Checkout JS path** - WebView hosts the Nets/DIBS Checkout. With Nexi test
+  keys set, the **real Nexi Checkout** loads in the WebView, live against
+  `test.api.dibspayment.eu`; without keys a faithful sandbox stands in.
 - **3DS2 -> BankID app-switch** - the page fires `bankid://`; the app intercepts
   it (`Linking.openURL`) and blocks the WebView from following the scheme.
 - **Clean return** - the checkout redirects to `nets3ds://payment/return`; the
@@ -36,9 +36,16 @@ bridge so both can be estimated against running code.
 
 ## Screens
 
-| Step 5 - Payment | Nets/DIBS Checkout | 3DS2 challenge |
+The first row is the **real Nexi Checkout** running live in the app WebView
+against the Nexi test API (note the `(TEST)` amount and the `nets` branding).
+
+| Step 5 - Payment | Real Nexi Checkout (live-test) | Real card + Pay (TEST) |
 |---|---|---|
-| ![Setup](screenshots/01-payment-setup.png) | ![Checkout](screenshots/02-checkout.png) | ![3DS](screenshots/03-3ds-challenge.png) |
+| ![Setup](screenshots/01-payment-setup.png) | ![Checkout](screenshots/02-checkout.png) | ![Pay](screenshots/03-checkout-pay.png) |
+
+The second row is the interception mechanics, shown deterministically in the
+sandbox (the BankID app-switch only fires for real on a device with a live
+Swedish card, so it is simulated here).
 
 | BankID intercept | Result + trace | Native SDK option |
 |---|---|---|
@@ -87,8 +94,30 @@ npm start                  # Expo (terminal 2), open in Expo Go / simulator
 ```
 
 Without keys the backend runs in **sandbox** mode and the flow is fully demoable.
-With `NEXI_SECRET_KEY` + `NEXI_CHECKOUT_KEY` the backend proxies the real Nexi
-test API and the WebView mounts the real Checkout JS SDK.
+With `NEXI_SECRET_KEY` + `NEXI_CHECKOUT_KEY` the backend creates a real payment
+on `test.api.dibspayment.eu` and the WebView loads the real Nexi Checkout (the
+screenshots above). Get test keys from the Nexi/Nets test portal (Company
+settings -> API keys); the secret key stays server-side, the checkout key is
+public.
+
+### WebView finding: HostedPaymentPage vs EmbeddedCheckout
+
+This is the answer to "how does Checkout JS behave inside a React Native
+WebView", and it shaped the implementation:
+
+- **EmbeddedCheckout** (the `checkout.js` SDK mounted in our own
+  `http://localhost` page) renders fine in mobile Safari but **stalls on the SDK
+  skeleton inside `WKWebView`**. The payment iframe is third-party there, so iOS
+  ITP blocks the cookie it needs. `sharedCookiesEnabled` did not unblock it.
+- **HostedPaymentPage** returns a `hostedPaymentPageUrl` on Nexi's **own domain**
+  (`test.checkout.dibspayment.eu`). Loading that URL directly makes the checkout
+  **first-party**, so it renders reliably in the WebView. The app intercepts the
+  same `bankid://` app-switch and the `nets3ds://` return URL.
+
+So the live path uses HostedPaymentPage (`server/routes/payments.ts`); the
+EmbeddedCheckout page is kept in `server/routes/checkout.ts` for reference. For
+Option B, **prefer the hosted page in the WebView, or an in-app browser tab
+(`SFSafariViewController` / `expo-web-browser`)**, over an embedded iframe.
 
 ### Native SDK path (Option A) - dev build
 
