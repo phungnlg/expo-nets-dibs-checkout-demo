@@ -1,0 +1,21 @@
+appId: host.exp.Exponent
+name: Real Nexi Checkout JS SDK - capture (live-test keys set)
+---
+# Project must already be open in Expo Go (xcrun simctl openurl booted
+# exp://localhost:8082) with the backend in live-test mode (.env keys set).
+# Captures the REAL Checkout JS SDK rendering in the WebView against the Nexi
+# test API. No launchApp (would reset Expo Go); CI mode keeps state.
+- extendedWaitUntil:
+    visible: { text: "Amount to pay" }
+    timeout: 30000
+- takeScreenshot: screenshots/01-payment-setup
+
+# Checkout JS (Option B) row, then pay.
+- tapOn:
+    point: "50%,77%"
+- tapOn: "Pay now"
+# Real SDK loads its hosted card form inside the WebView. Give it time to fetch
+# and render the iframe, then capture.
+- waitForAnimationToEnd:
+    timeout: 12000
+- takeScreenshot: screenshots/02-checkout
