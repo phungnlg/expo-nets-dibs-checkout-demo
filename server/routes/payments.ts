@@ -62,6 +62,21 @@ paymentsRouter.post("/", async (req, res) => {
             integrationType: "HostedPaymentPage",
             returnUrl: "nets3ds://payment/return",
             termsUrl: "https://example.com/terms",
+            // Prefill the buyer so the hosted page skips the delivery-details
+            // step and goes straight to card entry. In production the app would
+            // pass the signed-in user here.
+            merchantHandlesConsumerData: true,
+            consumer: {
+              email: "test.buyer@example.com",
+              shippingAddress: {
+                addressLine1: "Testgatan 1",
+                postalCode: "11122",
+                city: "Stockholm",
+                country: "SWE",
+              },
+              phoneNumber: { prefix: "+46", number: "701234567" },
+              privatePerson: { firstName: "Test", lastName: "Buyer" },
+            },
           },
         },
         { headers: { Authorization: NEXI_SECRET } }
@@ -95,9 +110,27 @@ paymentsRouter.post("/", async (req, res) => {
   res.json({ paymentId: payment.paymentId });
 });
 
-paymentsRouter.get("/:id", (req, res) => {
+paymentsRouter.get("/:id", async (req, res) => {
   const p = orders.get(req.params.id);
   if (!p) return res.status(404).json({ error: "not found" });
+
+  // Live mode: never trust the client redirect. Verify server-side against
+  // Nexi - after a 3DS approval the amount is reserved (authorized); once
+  // captured it is charged. Either means the payment went through.
+  if (NEXI_SECRET) {
+    try {
+      const { data } = await axios.get(`${NEXI_BASE}/v1/payments/${req.params.id}`, {
+        headers: { Authorization: NEXI_SECRET },
+      });
+      const s = data?.payment?.summary ?? {};
+      const ok = (s.reservedAmount ?? 0) > 0 || (s.chargedAmount ?? 0) > 0;
+      const status = ok ? "paid" : p.status;
+      return res.json({ paymentId: p.paymentId, status, summary: s });
+    } catch (e) {
+      return res.status(502).json({ error: "nexi status failed", detail: String(e) });
+    }
+  }
+
   res.json({ paymentId: p.paymentId, status: p.status });
 });
 
