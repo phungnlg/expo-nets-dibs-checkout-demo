@@ -59,6 +59,12 @@ export default function Checkout() {
         originWhitelist={["https://*", "http://*", "bankid://*", "nets3ds://*"]}
         onShouldStartLoadWithRequest={onShouldStart}
         onNavigationStateChange={(nav) => onShouldStart(nav)}
+        // The Nexi Checkout iframe sets a session cookie; without these it stalls
+        // on the SDK skeleton in WKWebView (iOS ITP) and Android.
+        sharedCookiesEnabled
+        thirdPartyCookiesEnabled
+        domStorageEnabled
+        javaScriptEnabled
         startInLoadingState
         renderLoading={() => (
           <View style={styles.center}>
