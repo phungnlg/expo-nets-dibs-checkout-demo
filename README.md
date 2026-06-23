@@ -36,20 +36,24 @@ bridge so both can be estimated against running code.
 
 ## Screens
 
-The first row is the **real Nexi Checkout** running live in the app WebView
-against the Nexi test API (note the `(TEST)` amount and the `nets` branding).
+A **real payment completed end to end** in the app WebView against the Nexi test
+API: enter a test card, clear the real `3D Secure` step, return into the app, and
+have the backend confirm the charge server-side (note the `(TEST)` amount and the
+`nets` / `Verified by nets` branding).
 
 | Step 5 - Payment | Real Nexi Checkout (live-test) | Real card + Pay (TEST) |
 |---|---|---|
 | ![Setup](screenshots/01-payment-setup.png) | ![Checkout](screenshots/02-checkout.png) | ![Pay](screenshots/03-checkout-pay.png) |
 
-The second row is the interception mechanics, shown deterministically in the
-sandbox (the BankID app-switch only fires for real on a device with a live
-Swedish card, so it is simulated here).
-
-| BankID intercept | Result + trace | Native SDK option |
+| Real 3D Secure | Approved + verified | Native SDK option |
 |---|---|---|
-| ![Intercept](screenshots/04-bankid-intercept.png) | ![Result](screenshots/05-result-paid.png) | ![Native](screenshots/06-native-sdk-option.png) |
+| ![3DS](screenshots/04-3ds-sim.png) | ![Result](screenshots/05-result-paid.png) | ![Native](screenshots/06-native-sdk-option.png) |
+
+The 3DS step here is Nexi's **test 3-D Secure simulator**; in production a real
+Swedish card app-switches to **BankID**. The app intercepts that `bankid://`
+app-switch in code either way (`app/checkout.tsx`). The result screen reads
+`paid` from a **server-side check against Nexi**, not from the return URL - the
+trace deliberately shows the raw redirect carried no status.
 
 ## The interception (Checkout JS path)
 
@@ -118,6 +122,17 @@ So the live path uses HostedPaymentPage (`server/routes/payments.ts`); the
 EmbeddedCheckout page is kept in `server/routes/checkout.ts` for reference. For
 Option B, **prefer the hosted page in the WebView, or an in-app browser tab
 (`SFSafariViewController` / `expo-web-browser`)**, over an embedded iframe.
+
+Completing a live-test payment:
+
+- The create call prefills the buyer (`merchantHandlesConsumerData` + a
+  `consumer`), so the hosted page skips delivery details and opens on card entry.
+- Use a Nexi test card, e.g. Visa `4925 0000 0000 0004`, any future expiry, any
+  CVC. The test **3-D Secure simulator** then offers Approve / Reject.
+- On Approve, Nexi redirects to `nets3ds://payment/return` (no status param). The
+  app intercepts it and calls `GET /payments/:id`, which **proxies the real Nexi
+  payment** and maps `reservedAmount`/`chargedAmount` to `paid`. The redirect is
+  never trusted on its own.
 
 ### Native SDK path (Option A) - dev build
 
