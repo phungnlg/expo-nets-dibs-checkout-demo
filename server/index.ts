@@ -1,3 +1,4 @@
+import "./env";
 import express from "express";
 import { paymentsRouter } from "./routes/payments";
 import { checkoutRouter } from "./routes/checkout";

@@ -18,7 +18,10 @@ export async function createPayment(input: {
   method: PayMethod;
 }): Promise<CreatedPayment> {
   const { data } = await api.post("/payments", input);
-  const checkoutUrl = `${API_BASE}/checkout/${data.paymentId}?method=${input.method}`;
+  // Live mode returns Nexi's hosted page URL (its own domain, renders first-party
+  // in the WebView). Sandbox returns no URL, so we load our local checkout page.
+  const checkoutUrl =
+    data.hostedPaymentPageUrl ?? `${API_BASE}/checkout/${data.paymentId}?method=${input.method}`;
   return { paymentId: data.paymentId, checkoutUrl };
 }
 

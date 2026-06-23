@@ -32,6 +32,14 @@ paymentsRouter.post("/", async (req, res) => {
   if (NEXI_SECRET) {
     try {
       // Nexi amounts are in minor units (ore for SEK).
+      //
+      // HostedPaymentPage: Nexi returns a hostedPaymentPageUrl on its own domain
+      // (test.checkout.dibspayment.eu). The app loads THAT url in the WebView, so
+      // the checkout runs first-party - this is what makes it render reliably in
+      // WKWebView. EmbeddedCheckout (checkout.js inside our own http://localhost
+      // page) renders in Safari but stalls on the SDK skeleton in WKWebView
+      // because the payment iframe is third-party there (iOS ITP blocks its
+      // cookie). returnUrl is our custom scheme; the WebView intercepts it.
       const { data } = await axios.post(
         `${NEXI_BASE}/v1/payments`,
         {
@@ -51,8 +59,8 @@ paymentsRouter.post("/", async (req, res) => {
             currency,
           },
           checkout: {
-            integrationType: "EmbeddedCheckout",
-            url: `${process.env.PUBLIC_URL ?? "http://localhost:3000"}/checkout`,
+            integrationType: "HostedPaymentPage",
+            returnUrl: "nets3ds://payment/return",
             termsUrl: "https://example.com/terms",
           },
         },
@@ -66,7 +74,10 @@ paymentsRouter.post("/", async (req, res) => {
         status: "created",
         createdAt: Date.now(),
       });
-      return res.json({ paymentId: data.paymentId });
+      return res.json({
+        paymentId: data.paymentId,
+        hostedPaymentPageUrl: data.hostedPaymentPageUrl,
+      });
     } catch (e) {
       return res.status(502).json({ error: "nexi create failed", detail: String(e) });
     }
