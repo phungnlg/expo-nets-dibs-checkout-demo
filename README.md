@@ -172,14 +172,3 @@ The iOS module is verified to autolink and compile (`pod install` installs the
 dependency in `modules/nets-easy/ios/NetsEasy.podspec` /
 `modules/nets-easy/android/build.gradle` and replace the stand-in checkout view
 with the real SDK call - the JS contract (`presentCheckout`) stays the same.
-
-## Production checklist
-
-- Keep the Nexi secret key server-side only; the app uses the public checkout key.
-- Verify the final payment server-side via the Nexi webhook / payment status -
-  never trust the client redirect alone (the result screen re-checks the backend).
-- Register the `nets3ds` return scheme with Nexi and add `bankid` to
-  `LSApplicationQueriesSchemes` (iOS) and a browsable intent filter (Android).
-- Test the same-device BankID return on real iOS and Android hardware.
-- If WebView return proves unreliable, ship Option A behind the same screen
-  contract - the bridge is already stubbed in `modules/nets-easy`.
